@@ -1,2 +1,2 @@
 print("hellow git")
-print("developer A automation")
+print("developer A version")
