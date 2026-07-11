@@ -36,7 +36,9 @@ pipeline {
             steps {
                 bat '''
                 call venv\\Scripts\\activate.bat
+
                 python -m pip install --upgrade pip
+
                 pip install -r requirements.txt
                 '''
             }
@@ -46,6 +48,7 @@ pipeline {
             steps {
                 bat '''
                 call venv\\Scripts\\activate.bat
+
                 pytest -v --alluredir=allure-results
                 '''
             }
@@ -63,8 +66,22 @@ pipeline {
     }
 
     post {
+
         always {
-            archiveArtifacts artifacts: 'allure-results/**', allowEmptyArchive: true
+
+            echo 'Publishing Allure results...'
+
+            allure(
+                includeProperties: false,
+                jdk: '',
+                results: [[path: 'allure-results']]
+            )
+
+            archiveArtifacts(
+                artifacts: 'allure-results/**',
+                allowEmptyArchive: true
+            )
+
             echo 'Pipeline execution completed.'
         }
 
@@ -73,7 +90,7 @@ pipeline {
         }
 
         failure {
-            echo 'Build Failed.'
+            echo 'Build Failed. Check Allure report for details.'
         }
     }
 }
