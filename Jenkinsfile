@@ -1,10 +1,6 @@
 pipeline {
     agent any
 
-    environment {
-        PYTHON = 'C:\\Users\\hello\\AppData\\Local\\Programs\\Python\\Python314\\python.exe'
-    }
-
     stages {
 
         stage('Checkout Code') {
@@ -14,29 +10,37 @@ pipeline {
             }
         }
 
+        stage('Create Virtual Environment') {
+            steps {
+                bat '''
+                python -m venv venv
+                '''
+            }
+        }
+
         stage('Verify Python') {
             steps {
-                bat """
-                "${PYTHON}" --version
-                "${PYTHON}" -m pip --version
-                """
+                bat '''
+                venv\\Scripts\\python.exe --version
+                venv\\Scripts\\python.exe -m pip --version
+                '''
             }
         }
 
         stage('Install Dependencies') {
             steps {
-                bat """
-                "${PYTHON}" -m pip install --upgrade pip
-                "${PYTHON}" -m pip install -r requirements.txt
-                """
+                bat '''
+                venv\\Scripts\\python.exe -m pip install --upgrade pip
+                venv\\Scripts\\python.exe -m pip install -r requirements.txt
+                '''
             }
         }
 
         stage('Run Selenium Tests') {
             steps {
-                bat """
-                "${PYTHON}" -m pytest -v --alluredir=allure-results
-                """
+                bat '''
+                venv\\Scripts\\python.exe -m pytest -v --alluredir=allure-results
+                '''
             }
         }
 
@@ -52,10 +56,9 @@ pipeline {
     }
 
     post {
-
         always {
-            echo 'Pipeline execution completed.'
             archiveArtifacts artifacts: 'allure-results/**', allowEmptyArchive: true
+            echo 'Pipeline execution completed.'
         }
 
         success {
