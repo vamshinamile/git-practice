@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    environment {
+        PYTHON = 'C:\\Users\\hello\\AppData\\Local\\Programs\\Python\\Python314\\python.exe'
+    }
+
     stages {
 
         stage('Checkout Code') {
@@ -10,19 +14,19 @@ pipeline {
             }
         }
 
-        stage('Create Virtual Environment') {
+        stage('Verify Python') {
             steps {
                 bat '''
-                python -m venv venv
+                "%PYTHON%" --version
+                "%PYTHON%" -m pip --version
                 '''
             }
         }
 
-        stage('Verify Python') {
+        stage('Create Virtual Environment') {
             steps {
                 bat '''
-                venv\\Scripts\\python.exe --version
-                venv\\Scripts\\python.exe -m pip --version
+                "%PYTHON%" -m venv venv
                 '''
             }
         }
