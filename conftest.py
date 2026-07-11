@@ -4,15 +4,29 @@ import os
 import allure
 import pytest
 from selenium import webdriver
-
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 
 @pytest.fixture
 def driver(request):
-    driver=webdriver.Chrome()
+
+    options = Options()
+
+    # If running on GitHub Actions
+    if os.getenv("GITHUB_ACTIONS") == "true":
+        options.add_argument("--headless")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+    driver = webdriver.Chrome(service=Service(), options=options)
+    
+
     driver.maximize_window()
-    driver.get("https://www.amazon.in/") 
+    driver.get("https://www.amazon.in/")
+
     request.node.driver = driver
+
     yield driver
+
     driver.quit()
 
 @pytest.hookimpl(hookwrapper=True)
