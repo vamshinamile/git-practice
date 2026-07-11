@@ -3,7 +3,7 @@ name: Selenium Automation
 on:
   push:
     branches:
-      - main
+       - feature-login
 
 permissions:
   contents: write
