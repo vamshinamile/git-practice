@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        PYTHON = 'C:\\Users\\hello\\AppData\\Local\\Programs\\Python\\Python314\\python.exe'
+        PYTHON = 'C:\\Program Files\\Python314\\python.exe'
     }
 
     stages {
@@ -26,6 +26,7 @@ pipeline {
         stage('Create Virtual Environment') {
             steps {
                 bat '''
+                if exist venv rmdir /s /q venv
                 "%PYTHON%" -m venv venv
                 '''
             }
@@ -34,8 +35,9 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 bat '''
-                venv\\Scripts\\python.exe -m pip install --upgrade pip
-                venv\\Scripts\\python.exe -m pip install -r requirements.txt
+                call venv\\Scripts\\activate.bat
+                python -m pip install --upgrade pip
+                pip install -r requirements.txt
                 '''
             }
         }
@@ -43,7 +45,8 @@ pipeline {
         stage('Run Selenium Tests') {
             steps {
                 bat '''
-                venv\\Scripts\\python.exe -m pytest -v --alluredir=allure-results
+                call venv\\Scripts\\activate.bat
+                pytest -v --alluredir=allure-results
                 '''
             }
         }
