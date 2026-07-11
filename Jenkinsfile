@@ -1,96 +1,120 @@
 pipeline {
+
     agent any
 
     environment {
-        PYTHON = 'C:\\Program Files\\Python314\\python.exe'
+        PYTHON = "C:\\Program Files\\Python314\\python.exe"
+        VENV = "venv"
     }
 
     stages {
 
         stage('Checkout Code') {
             steps {
-                echo 'Checking out source code...'
+                echo "Checking out source code..."
                 checkout scm
             }
         }
 
+
         stage('Verify Python') {
             steps {
-                bat '''
-                "%PYTHON%" --version
-                "%PYTHON%" -m pip --version
-                '''
+                bat """
+                "${PYTHON}" --version
+                "${PYTHON}" -m pip --version
+                """
             }
         }
+
 
         stage('Create Virtual Environment') {
             steps {
-                bat '''
-                if exist venv rmdir /s /q venv
-                "%PYTHON%" -m venv venv
-                '''
+                bat """
+                if exist ${VENV} rmdir /s /q ${VENV}
+                "${PYTHON}" -m venv ${VENV}
+                """
             }
         }
 
+
         stage('Install Dependencies') {
             steps {
-                bat '''
-                call venv\\Scripts\\activate.bat
+                bat """
+                call ${VENV}\\Scripts\\activate.bat
 
                 python -m pip install --upgrade pip
 
                 pip install -r requirements.txt
-                '''
+                """
             }
         }
+
 
         stage('Run Selenium Tests') {
             steps {
-                bat '''
-                call venv\\Scripts\\activate.bat
+                bat """
+                call ${VENV}\\Scripts\\activate.bat
 
                 pytest -v --alluredir=allure-results
-                '''
+                """
+            }
+
+            post {
+                always {
+                    echo "Test execution completed"
+                }
             }
         }
 
-        stage('Publish Allure Report') {
+
+        stage('Generate Allure Report') {
             steps {
-                allure(
-                    includeProperties: false,
-                    jdk: '',
-                    results: [[path: 'allure-results']]
-                )
+                script {
+
+                    allure([
+                        includeProperties: false,
+                        jdk: '',
+                        results: [
+                            [
+                                path: 'allure-results'
+                            ]
+                        ]
+                    ])
+
+                }
             }
         }
+
     }
+
 
     post {
 
         always {
 
-            echo 'Publishing Allure results...'
+            echo "Publishing Allure results..."
 
-            allure(
+            allure([
                 includeProperties: false,
                 jdk: '',
-                results: [[path: 'allure-results']]
-            )
-
-            archiveArtifacts(
-                artifacts: 'allure-results/**',
-                allowEmptyArchive: true
-            )
-
-            echo 'Pipeline execution completed.'
+                results: [
+                    [
+                        path: 'allure-results'
+                    ]
+                ]
+            ])
         }
+
 
         success {
-            echo 'Build Successful.'
+            echo "Build Passed Successfully"
         }
 
+
         failure {
-            echo 'Build Failed. Check Allure report for details.'
+            echo "Build Failed. Check Allure Report"
         }
+
     }
+
 }
