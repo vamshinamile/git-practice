@@ -59,13 +59,54 @@ pipeline {
                 """
             }
 
-            post {
-                always {
-                    echo "Test execution completed"
-                }
-            }
-        }
+       post {
 
+    always {
+
+        emailext(
+            subject: "Regression Build #${BUILD_NUMBER} ${BUILD_STATUS}",
+
+            body: """
+<html>
+<body>
+
+<h2>Regression Execution Completed</h2>
+
+<p><b>Build Number:</b> ${BUILD_NUMBER}</p>
+
+<p><b>Status:</b> ${BUILD_STATUS}</p>
+
+<p>
+<b>Jenkins Build:</b>
+<a href="${BUILD_URL}">
+Open Build
+</a>
+</p>
+
+<p>
+<b>Allure Report:</b>
+<a href="${BUILD_URL}allure">
+Open Allure Report
+</a>
+</p>
+
+<br>
+
+Regards,<br>
+Jenkins Automation Team
+
+</body>
+</html>
+""",
+
+            mimeType: 'text/html',
+
+            to: "your-developer-email@gmail.com"
+        )
+
+    }
+
+}
 
         stage('Generate Allure Report') {
             steps {
