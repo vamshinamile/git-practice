@@ -1,0 +1,52 @@
+name: Selenium Automation
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Project
+        uses: actions/checkout@v4
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install Allure
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y default-jre
+          wget https://github.com/allure-framework/allure2/releases/download/2.34.1/allure-2.34.1.tgz
+          tar -zxvf allure-2.34.1.tgz
+          sudo mv allure-2.34.1 /opt/allure
+          sudo ln -s /opt/allure/bin/allure /usr/bin/allure
+
+      - name: Run Tests
+        run: |
+          pytest --alluredir=allure-results
+
+      - name: Generate Report
+        run: |
+          allure generate allure-results -o allure-report --clean
+
+      - name: Deploy Report
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./allure-report
