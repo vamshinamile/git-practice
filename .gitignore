@@ -1,5 +1,8 @@
-# Python
+# Virtual Environment
 venv/
+.venv/
+
+# Python
 __pycache__/
 *.pyc
 
@@ -9,6 +12,7 @@ __pycache__/
 # Allure
 allure-results/
 allure-report/
+allure-report.zip
 
 # Logs
 logs/
@@ -16,6 +20,5 @@ logs/
 # Screenshots
 screenshots/
 
-# IDE
+# VS Code
 .vscode/
-.idea/
