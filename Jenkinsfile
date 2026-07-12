@@ -2,14 +2,22 @@ pipeline {
 
     agent any
 
+    options {
+        timestamps()
+    }
+
     environment {
         PYTHON = "C:\\Program Files\\Python314\\python.exe"
         VENV = "venv"
     }
 
-
     stages {
 
+        stage('Clean Workspace') {
+            steps {
+                cleanWs()
+            }
+        }
 
         stage('Checkout Code') {
             steps {
@@ -17,7 +25,6 @@ pipeline {
                 checkout scm
             }
         }
-
 
         stage('Verify Python') {
             steps {
@@ -28,7 +35,6 @@ pipeline {
             }
         }
 
-
         stage('Create Virtual Environment') {
             steps {
                 bat """
@@ -38,167 +44,100 @@ pipeline {
             }
         }
 
-
         stage('Install Dependencies') {
             steps {
                 bat """
                 call ${VENV}\\Scripts\\activate.bat
-
                 python -m pip install --upgrade pip
-
                 pip install -r requirements.txt
                 """
             }
         }
 
-
         stage('Run Selenium Tests') {
-
             steps {
-
                 bat """
                 call ${VENV}\\Scripts\\activate.bat
-
                 pytest -v --alluredir=allure-results
                 """
-
             }
         }
 
-
-        stage('Generate Allure Report') {
-
+        stage('Publish Allure Report') {
             steps {
-
-                echo "Generating Allure Report..."
-
+                allure(
+                    includeProperties: false,
+                    jdk: '',
+                    results: [[path: 'allure-results']]
+                )
             }
         }
-
     }
-
-
 
     post {
 
-
         always {
 
-
-            echo "Publishing Allure results..."
-
-
-            allure([
-
-                includeProperties: false,
-
-                jdk: '',
-
-                results: [
-
-                    [
-
-                        path: 'allure-results'
-
-                    ]
-
-                ]
-
-            ])
-
-
-
             emailext(
-
-                subject: "Regression Build #${BUILD_NUMBER} ${BUILD_STATUS}",
-
-
-                body: """
-
-<html>
-
-<body>
-
-
-<h2>Regression Execution Completed</h2>
-
-
-<p><b>Build Number:</b> ${BUILD_NUMBER}</p>
-
-
-<p><b>Status:</b> ${BUILD_STATUS}</p>
-
-
-
-<p>
-
-<b>Jenkins Build:</b>
-
-<a href="${BUILD_URL}">
-
-Open Build
-
-</a>
-
-</p>
-
-
-
-<p>
-
-<b>Allure Report:</b>
-
-<a href="${BUILD_URL}allure">
-
-Open Allure Report
-
-</a>
-
-</p>
-
-
-
-<br>
-
-
-Regards,<br>
-
-Jenkins Automation Team
-
-
-</body>
-
-</html>
-
-""",
-
-
+                subject: "Automation Build #${env.BUILD_NUMBER} - ${currentBuild.currentResult}",
                 mimeType: 'text/html',
+                body: """
+                <html>
+                <body>
 
+                <h2>Automation Execution Report</h2>
 
-                to: "your-developer-email@gmail.com"
+                <table border="1" cellpadding="8">
+                    <tr>
+                        <th>Job Name</th>
+                        <td>${env.JOB_NAME}</td>
+                    </tr>
+                    <tr>
+                        <th>Build Number</th>
+                        <td>${env.BUILD_NUMBER}</td>
+                    </tr>
+                    <tr>
+                        <th>Status</th>
+                        <td>${currentBuild.currentResult}</td>
+                    </tr>
+                </table>
 
+                <br>
+
+                <b>Build URL:</b><br>
+                <a href="${env.BUILD_URL}">
+                ${env.BUILD_URL}
+                </a>
+
+                <br><br>
+
+                <b>Allure Report:</b><br>
+                <a href="${env.BUILD_URL}allure">
+                ${env.BUILD_URL}allure
+                </a>
+
+                <br><br>
+
+                Regards,<br>
+                <b>Jenkins Automation Team</b>
+
+                </body>
+                </html>
+                """,
+                to: "vamshinamile18@gmail.com"
             )
-
         }
-
-
 
         success {
-
-            echo "Build Passed Successfully"
-
+            echo "Automation execution completed successfully."
         }
-
-
 
         failure {
-
-            echo "Build Failed. Check Allure Report"
-
+            echo "Automation execution failed."
         }
 
-
+        cleanup {
+            echo "Pipeline execution completed."
+        }
     }
-
 }
