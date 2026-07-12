@@ -2,13 +2,8 @@ pipeline {
 
     agent any
 
-    options {
-        timestamps()
-    }
-
     environment {
         PYTHON = "C:\\Program Files\\Python314\\python.exe"
-        VENV = "venv"
     }
 
     stages {
@@ -21,7 +16,6 @@ pipeline {
 
         stage('Checkout Code') {
             steps {
-                echo "Checking out source code..."
                 checkout scm
             }
         }
@@ -29,8 +23,8 @@ pipeline {
         stage('Verify Python') {
             steps {
                 bat """
-                "${PYTHON}" --version
-                "${PYTHON}" -m pip --version
+                "%PYTHON%" --version
+                "%PYTHON%" -m pip --version
                 """
             }
         }
@@ -38,8 +32,8 @@ pipeline {
         stage('Create Virtual Environment') {
             steps {
                 bat """
-                if exist ${VENV} rmdir /s /q ${VENV}
-                "${PYTHON}" -m venv ${VENV}
+                if exist venv rmdir /s /q venv
+                "%PYTHON%" -m venv venv
                 """
             }
         }
@@ -47,7 +41,7 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 bat """
-                call ${VENV}\\Scripts\\activate.bat
+                call venv\\Scripts\\activate.bat
                 python -m pip install --upgrade pip
                 pip install -r requirements.txt
                 """
@@ -56,20 +50,33 @@ pipeline {
 
         stage('Run Selenium Tests') {
             steps {
-                script {
-                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                        bat """
-                        call ${VENV}\\Scripts\\activate.bat
-                        pytest -v --alluredir=allure-results
-                        """
-                    }
-                }
+
+                bat """
+                if not exist reports mkdir reports
+
+                call venv\\Scripts\\activate.bat
+
+                pytest tests ^
+                -v ^
+                --junitxml=reports/results.xml ^
+                --alluredir=allure-results
+                """
+            }
+        }
+
+        stage('Publish JUnit Report') {
+            steps {
+                junit 'reports/results.xml'
             }
         }
 
         stage('Publish Allure Report') {
             steps {
-                echo "Skipping Allure Report for now..."
+                allure(
+                    includeProperties: false,
+                    jdk: '',
+                    results: [[path: 'allure-results']]
+                )
             }
         }
     }
@@ -78,41 +85,104 @@ pipeline {
 
         always {
 
-            echo "========== POST BLOCK STARTED =========="
+            script {
 
-            emailext(
-                to: 'vamshinamile18@gmail.com',
-                subject: "Automation Build #${env.BUILD_NUMBER} - ${currentBuild.currentResult}",
-                body: """
-Hello Team,
+                def result = currentBuild.rawBuild.getAction(hudson.tasks.junit.TestResultAction.class)
 
-Automation execution has completed.
+                int total = 0
+                int failed = 0
+                int skipped = 0
+                int passed = 0
 
-Job Name : ${env.JOB_NAME}
-Build No : ${env.BUILD_NUMBER}
-Status   : ${currentBuild.currentResult}
+                if(result != null){
+                    total = result.totalCount
+                    failed = result.failCount
+                    skipped = result.skipCount
+                    passed = total - failed - skipped
+                }
 
-Build URL:
-${env.BUILD_URL}
+                emailext(
 
-Regards,
-Jenkins Automation
-"""
-            )
+                    to: 'vamshinamile18@gmail.com',
 
-            echo "========== EMAIL STEP COMPLETED =========="
-        }
+                    subject: "Automation Build #${env.BUILD_NUMBER} - ${currentBuild.currentResult}",
 
-        success {
-            echo "Build completed successfully."
-        }
+                    mimeType: 'text/html',
 
-        failure {
-            echo "Build completed with failures."
-        }
+                    body: """
+                    <html>
 
-        cleanup {
-            echo "Pipeline execution finished."
+                    <body>
+
+                    <h2>Automation Execution Report</h2>
+
+                    <table border="1" cellpadding="8" cellspacing="0">
+
+                    <tr>
+                    <td><b>Job Name</b></td>
+                    <td>${env.JOB_NAME}</td>
+                    </tr>
+
+                    <tr>
+                    <td><b>Build Number</b></td>
+                    <td>${env.BUILD_NUMBER}</td>
+                    </tr>
+
+                    <tr>
+                    <td><b>Status</b></td>
+                    <td>${currentBuild.currentResult}</td>
+                    </tr>
+
+                    <tr>
+                    <td><b>Total Tests</b></td>
+                    <td>${total}</td>
+                    </tr>
+
+                    <tr>
+                    <td><b>Passed</b></td>
+                    <td>${passed}</td>
+                    </tr>
+
+                    <tr>
+                    <td><b>Failed</b></td>
+                    <td>${failed}</td>
+                    </tr>
+
+                    <tr>
+                    <td><b>Skipped</b></td>
+                    <td>${skipped}</td>
+                    </tr>
+
+                    </table>
+
+                    <br>
+
+                    <b>Build URL:</b><br>
+
+                    <a href="${env.BUILD_URL}">
+                    ${env.BUILD_URL}
+                    </a>
+
+                    <br><br>
+
+                    <b>Allure Report:</b><br>
+
+                    <a href="${env.BUILD_URL}allure">
+                    ${env.BUILD_URL}allure
+                    </a>
+
+                    <br><br>
+
+                    Regards,<br>
+
+                    Jenkins
+
+                    </body>
+
+                    </html>
+                    """
+                )
+            }
         }
     }
 }
