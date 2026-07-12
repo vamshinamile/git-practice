@@ -81,40 +81,35 @@ pipeline {
         }
     }
 
-    post {
-        always {
-            script {
+ post {
+    always {
+        script {
 
-                def xml = readFile(file: 'reports/results.xml')
+            int total = currentBuild.rawBuild.getAction(hudson.tasks.junit.TestResultAction)?.totalCount ?: 0
+            int failed = currentBuild.rawBuild.getAction(hudson.tasks.junit.TestResultAction)?.failCount ?: 0
+            int skipped = currentBuild.rawBuild.getAction(hudson.tasks.junit.TestResultAction)?.skipCount ?: 0
+            int passed = total - failed - skipped
 
-                def totalMatcher = (xml =~ /tests="(\d+)"/)
-                def failedMatcher = (xml =~ /failures="(\d+)"/)
-                def skippedMatcher = (xml =~ /skipped="(\d+)"/)
-
-                int total = totalMatcher ? totalMatcher[0][1].toInteger() : 0
-                int failed = failedMatcher ? failedMatcher[0][1].toInteger() : 0
-                int skipped = skippedMatcher ? skippedMatcher[0][1].toInteger() : 0
-                int passed = total - failed - skipped
-
-                emailext(
-                    to: 'vamshinamile18@gmail.com',
-                    subject: "Automation Build #${env.BUILD_NUMBER} - ${currentBuild.currentResult}",
-                    mimeType: 'text/html',
-                    body: """
+            emailext(
+                to: 'vamshinamile18@gmail.com',
+                subject: "Automation Build #${env.BUILD_NUMBER} - ${currentBuild.currentResult}",
+                mimeType: 'text/html',
+                body: """
 <html>
+
 <head>
 <style>
 table{
-    border-collapse:collapse;
-    font-family:Arial;
+border-collapse:collapse;
+font-family:Arial;
 }
 th,td{
-    border:1px solid black;
-    padding:8px;
+border:1px solid black;
+padding:8px;
 }
 th{
-    background:#4CAF50;
-    color:white;
+background:#4CAF50;
+color:white;
 }
 </style>
 </head>
@@ -151,13 +146,13 @@ th{
 </tr>
 
 <tr>
-<td>Passed</td>
-<td style="color:green;"><b>${passed}</b></td>
+<td style="color:green"><b>Passed</b></td>
+<td style="color:green"><b>${passed}</b></td>
 </tr>
 
 <tr>
-<td>Failed</td>
-<td style="color:red;"><b>${failed}</b></td>
+<td style="color:red"><b>Failed</b></td>
+<td style="color:red"><b>${failed}</b></td>
 </tr>
 
 <tr>
@@ -170,6 +165,7 @@ th{
 <br>
 
 <b>Build URL</b><br>
+
 <a href="${env.BUILD_URL}">
 ${env.BUILD_URL}
 </a>
@@ -177,6 +173,7 @@ ${env.BUILD_URL}
 <br><br>
 
 <b>Allure Report</b><br>
+
 <a href="${env.BUILD_URL}allure">
 ${env.BUILD_URL}allure
 </a>
@@ -187,10 +184,11 @@ Regards,<br>
 Jenkins
 
 </body>
+
 </html>
 """
-                )
-            }
+            )
         }
     }
+}
 }
