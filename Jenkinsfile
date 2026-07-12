@@ -81,22 +81,26 @@ pipeline {
         }
     }
 
-post {
-    always {
-        script {
+    post {
+        always {
+            script {
 
-            def action = currentBuild.rawBuild.getAction(hudson.tasks.junit.TestResultAction)
+                def xml = readFile(file: 'reports/results.xml')
 
-            int total = action?.totalCount ?: 0
-            int failed = action?.failCount ?: 0
-            int skipped = action?.skipCount ?: 0
-            int passed = total - failed - skipped
+                def totalMatcher = (xml =~ /tests="(\d+)"/)
+                def failedMatcher = (xml =~ /failures="(\d+)"/)
+                def skippedMatcher = (xml =~ /skipped="(\d+)"/)
 
-            emailext(
-                to: 'vamshinamile18@gmail.com',
-                subject: "Automation Build #${env.BUILD_NUMBER} - ${currentBuild.currentResult}",
-                mimeType: 'text/html',
-                body: """
+                int total = totalMatcher ? totalMatcher[0][1].toInteger() : 0
+                int failed = failedMatcher ? failedMatcher[0][1].toInteger() : 0
+                int skipped = skippedMatcher ? skippedMatcher[0][1].toInteger() : 0
+                int passed = total - failed - skipped
+
+                emailext(
+                    to: 'vamshinamile18@gmail.com',
+                    subject: "Automation Build #${env.BUILD_NUMBER} - ${currentBuild.currentResult}",
+                    mimeType: 'text/html',
+                    body: """
 <html>
 <head>
 <style>
@@ -185,10 +189,8 @@ Jenkins
 </body>
 </html>
 """
-            )
+                )
+            }
         }
     }
-}
-
-
 }
