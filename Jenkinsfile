@@ -56,20 +56,20 @@ pipeline {
 
         stage('Run Selenium Tests') {
             steps {
-                bat """
-                call ${VENV}\\Scripts\\activate.bat
-                pytest -v --alluredir=allure-results
-                """
+                script {
+                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                        bat """
+                        call ${VENV}\\Scripts\\activate.bat
+                        pytest -v --alluredir=allure-results
+                        """
+                    }
+                }
             }
         }
 
         stage('Publish Allure Report') {
             steps {
-                allure(
-                    includeProperties: false,
-                    jdk: '',
-                    results: [[path: 'allure-results']]
-                )
+                echo "Skipping Allure Report for now..."
             }
         }
     }
@@ -78,66 +78,41 @@ pipeline {
 
         always {
 
+            echo "========== POST BLOCK STARTED =========="
+
             emailext(
+                to: 'vamshinamile18@gmail.com',
                 subject: "Automation Build #${env.BUILD_NUMBER} - ${currentBuild.currentResult}",
-                mimeType: 'text/html',
                 body: """
-                <html>
-                <body>
+Hello Team,
 
-                <h2>Automation Execution Report</h2>
+Automation execution has completed.
 
-                <table border="1" cellpadding="8">
-                    <tr>
-                        <th>Job Name</th>
-                        <td>${env.JOB_NAME}</td>
-                    </tr>
-                    <tr>
-                        <th>Build Number</th>
-                        <td>${env.BUILD_NUMBER}</td>
-                    </tr>
-                    <tr>
-                        <th>Status</th>
-                        <td>${currentBuild.currentResult}</td>
-                    </tr>
-                </table>
+Job Name : ${env.JOB_NAME}
+Build No : ${env.BUILD_NUMBER}
+Status   : ${currentBuild.currentResult}
 
-                <br>
+Build URL:
+${env.BUILD_URL}
 
-                <b>Build URL:</b><br>
-                <a href="${env.BUILD_URL}">
-                ${env.BUILD_URL}
-                </a>
-
-                <br><br>
-
-                <b>Allure Report:</b><br>
-                <a href="${env.BUILD_URL}allure">
-                ${env.BUILD_URL}allure
-                </a>
-
-                <br><br>
-
-                Regards,<br>
-                <b>Jenkins Automation Team</b>
-
-                </body>
-                </html>
-                """,
-                to: "vamshinamile18@gmail.com"
+Regards,
+Jenkins Automation
+"""
             )
+
+            echo "========== EMAIL STEP COMPLETED =========="
         }
 
         success {
-            echo "Automation execution completed successfully."
+            echo "Build completed successfully."
         }
 
         failure {
-            echo "Automation execution failed."
+            echo "Build completed with failures."
         }
 
         cleanup {
-            echo "Pipeline execution completed."
+            echo "Pipeline execution finished."
         }
     }
 }
