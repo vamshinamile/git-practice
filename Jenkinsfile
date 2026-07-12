@@ -83,112 +83,31 @@ pipeline {
 
  post {
     always {
-        script {
 
-            int total = currentBuild.rawBuild.getAction(hudson.tasks.junit.TestResultAction)?.totalCount ?: 0
-            int failed = currentBuild.rawBuild.getAction(hudson.tasks.junit.TestResultAction)?.failCount ?: 0
-            int skipped = currentBuild.rawBuild.getAction(hudson.tasks.junit.TestResultAction)?.skipCount ?: 0
-            int passed = total - failed - skipped
+        junit 'reports/results.xml'
 
-            emailext(
-                to: 'vamshinamile18@gmail.com',
-                subject: "Automation Build #${env.BUILD_NUMBER} - ${currentBuild.currentResult}",
-                mimeType: 'text/html',
-                body: """
-<html>
+        emailext(
+            to: 'vamshinamile18@gmail.com',
+            subject: "Build #${env.BUILD_NUMBER} - ${currentBuild.currentResult}",
+            mimeType: 'text/html',
+            body: """
+<h2>Automation Build</h2>
 
-<head>
-<style>
-table{
-border-collapse:collapse;
-font-family:Arial;
-}
-th,td{
-border:1px solid black;
-padding:8px;
-}
-th{
-background:#4CAF50;
-color:white;
-}
-</style>
-</head>
+<b>Job:</b> ${env.JOB_NAME}<br>
+<b>Build:</b> ${env.BUILD_NUMBER}<br>
+<b>Status:</b> ${currentBuild.currentResult}<br><br>
 
-<body>
-
-<h2>Automation Execution Report</h2>
-
-<table>
-
-<tr>
-<th>Item</th>
-<th>Value</th>
-</tr>
-
-<tr>
-<td>Job Name</td>
-<td>${env.JOB_NAME}</td>
-</tr>
-
-<tr>
-<td>Build Number</td>
-<td>${env.BUILD_NUMBER}</td>
-</tr>
-
-<tr>
-<td>Status</td>
-<td>${currentBuild.currentResult}</td>
-</tr>
-
-<tr>
-<td>Total Tests</td>
-<td>${total}</td>
-</tr>
-
-<tr>
-<td style="color:green"><b>Passed</b></td>
-<td style="color:green"><b>${passed}</b></td>
-</tr>
-
-<tr>
-<td style="color:red"><b>Failed</b></td>
-<td style="color:red"><b>${failed}</b></td>
-</tr>
-
-<tr>
-<td>Skipped</td>
-<td>${skipped}</td>
-</tr>
-
-</table>
-
-<br>
-
-<b>Build URL</b><br>
-
+<b>Build URL:</b><br>
 <a href="${env.BUILD_URL}">
 ${env.BUILD_URL}
-</a>
+</a><br><br>
 
-<br><br>
-
-<b>Allure Report</b><br>
-
+<b>Allure Report:</b><br>
 <a href="${env.BUILD_URL}allure">
 ${env.BUILD_URL}allure
 </a>
-
-<br><br>
-
-Regards,<br>
-Jenkins
-
-</body>
-
-</html>
 """
-            )
-        }
+        )
     }
 }
 }
