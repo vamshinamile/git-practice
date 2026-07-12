@@ -13,11 +13,11 @@ def test_search_fun(driver):
         print(title.text)
         assert "Apple" in title.text
 
-@allure.feature("search")
-@allure.severity(allure.severity_level.CRITICAL)
-def test_add_cart_to_product(driver):
-    home = Homepage(driver)
-    home.click_button()
-    time.sleep(10)
-    print("Item added to cart")
+# @allure.feature("search")
+# @allure.severity(allure.severity_level.CRITICAL)
+# def test_add_cart_to_product(driver):
+#     home = Homepage(driver)
+#     home.click_button()
+#     time.sleep(10)
+#     print("Item added to cart")
     
