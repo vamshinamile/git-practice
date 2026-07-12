@@ -82,15 +82,27 @@ pipeline {
     }
 
     post {
+
         always {
+
             script {
 
-                def xml = readFile(file: 'reports/results.xml')
+                int total = 0
+                int failed = 0
+                int skipped = 0
+                int passed = 0
 
-                def total = (xml =~ /tests="(\\d+)"/)[0][1].toInteger()
-                def failed = (xml =~ /failures="(\\d+)"/)[0][1].toInteger()
-                def skipped = (xml =~ /skipped="(\\d+)"/)[0][1].toInteger()
-                def passed = total - failed - skipped
+                if (fileExists('reports/results.xml')) {
+
+                    def report = new XmlSlurper().parse(new File("${env.WORKSPACE}/reports/results.xml"))
+
+                    def suite = report.testsuite[0]
+
+                    total = suite.@tests.toInteger()
+                    failed = suite.@failures.toInteger()
+                    skipped = suite.@skipped.toInteger()
+                    passed = total - failed - skipped
+                }
 
                 emailext(
                     to: 'vamshinamile18@gmail.com',
@@ -98,21 +110,26 @@ pipeline {
                     mimeType: 'text/html',
                     body: """
 <html>
+
 <head>
+
 <style>
 table{
 border-collapse:collapse;
 font-family:Arial;
 }
+
 th,td{
 border:1px solid black;
 padding:8px;
 }
+
 th{
 background:#4CAF50;
 color:white;
 }
 </style>
+
 </head>
 
 <body>
@@ -147,17 +164,17 @@ color:white;
 </tr>
 
 <tr>
-<td>Passed</td>
+<td style="color:green;"><b>Passed</b></td>
 <td style="color:green;"><b>${passed}</b></td>
 </tr>
 
 <tr>
-<td>Failed</td>
+<td style="color:red;"><b>Failed</b></td>
 <td style="color:red;"><b>${failed}</b></td>
 </tr>
 
 <tr>
-<td>Skipped</td>
+<td><b>Skipped</b></td>
 <td>${skipped}</td>
 </tr>
 
@@ -166,6 +183,7 @@ color:white;
 <br>
 
 <b>Build URL</b><br>
+
 <a href="${env.BUILD_URL}">
 ${env.BUILD_URL}
 </a>
@@ -173,6 +191,7 @@ ${env.BUILD_URL}
 <br><br>
 
 <b>Allure Report</b><br>
+
 <a href="${env.BUILD_URL}allure">
 ${env.BUILD_URL}allure
 </a>
@@ -183,6 +202,7 @@ Regards,<br>
 Jenkins
 
 </body>
+
 </html>
 """
                 )
