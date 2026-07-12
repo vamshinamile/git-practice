@@ -50,9 +50,9 @@ pipeline {
 
         stage('Run Selenium Tests') {
             steps {
-
                 bat """
                 if not exist reports mkdir reports
+                if not exist allure-results mkdir allure-results
 
                 call venv\\Scripts\\activate.bat
 
@@ -82,105 +82,109 @@ pipeline {
     }
 
     post {
-
         always {
-
             script {
 
-                def result = currentBuild.rawBuild.getAction(hudson.tasks.junit.TestResultAction.class)
+                def xml = readFile(file: 'reports/results.xml')
 
-                int total = 0
-                int failed = 0
-                int skipped = 0
-                int passed = 0
-
-                if(result != null){
-                    total = result.totalCount
-                    failed = result.failCount
-                    skipped = result.skipCount
-                    passed = total - failed - skipped
-                }
+                def total = (xml =~ /tests="(\\d+)"/)[0][1].toInteger()
+                def failed = (xml =~ /failures="(\\d+)"/)[0][1].toInteger()
+                def skipped = (xml =~ /skipped="(\\d+)"/)[0][1].toInteger()
+                def passed = total - failed - skipped
 
                 emailext(
-
                     to: 'vamshinamile18@gmail.com',
-
                     subject: "Automation Build #${env.BUILD_NUMBER} - ${currentBuild.currentResult}",
-
                     mimeType: 'text/html',
-
                     body: """
-                    <html>
+<html>
+<head>
+<style>
+table{
+border-collapse:collapse;
+font-family:Arial;
+}
+th,td{
+border:1px solid black;
+padding:8px;
+}
+th{
+background:#4CAF50;
+color:white;
+}
+</style>
+</head>
 
-                    <body>
+<body>
 
-                    <h2>Automation Execution Report</h2>
+<h2>Automation Execution Report</h2>
 
-                    <table border="1" cellpadding="8" cellspacing="0">
+<table>
 
-                    <tr>
-                    <td><b>Job Name</b></td>
-                    <td>${env.JOB_NAME}</td>
-                    </tr>
+<tr>
+<th>Item</th>
+<th>Value</th>
+</tr>
 
-                    <tr>
-                    <td><b>Build Number</b></td>
-                    <td>${env.BUILD_NUMBER}</td>
-                    </tr>
+<tr>
+<td>Job Name</td>
+<td>${env.JOB_NAME}</td>
+</tr>
 
-                    <tr>
-                    <td><b>Status</b></td>
-                    <td>${currentBuild.currentResult}</td>
-                    </tr>
+<tr>
+<td>Build Number</td>
+<td>${env.BUILD_NUMBER}</td>
+</tr>
 
-                    <tr>
-                    <td><b>Total Tests</b></td>
-                    <td>${total}</td>
-                    </tr>
+<tr>
+<td>Status</td>
+<td>${currentBuild.currentResult}</td>
+</tr>
 
-                    <tr>
-                    <td><b>Passed</b></td>
-                    <td>${passed}</td>
-                    </tr>
+<tr>
+<td>Total Tests</td>
+<td>${total}</td>
+</tr>
 
-                    <tr>
-                    <td><b>Failed</b></td>
-                    <td>${failed}</td>
-                    </tr>
+<tr>
+<td>Passed</td>
+<td style="color:green;"><b>${passed}</b></td>
+</tr>
 
-                    <tr>
-                    <td><b>Skipped</b></td>
-                    <td>${skipped}</td>
-                    </tr>
+<tr>
+<td>Failed</td>
+<td style="color:red;"><b>${failed}</b></td>
+</tr>
 
-                    </table>
+<tr>
+<td>Skipped</td>
+<td>${skipped}</td>
+</tr>
 
-                    <br>
+</table>
 
-                    <b>Build URL:</b><br>
+<br>
 
-                    <a href="${env.BUILD_URL}">
-                    ${env.BUILD_URL}
-                    </a>
+<b>Build URL</b><br>
+<a href="${env.BUILD_URL}">
+${env.BUILD_URL}
+</a>
 
-                    <br><br>
+<br><br>
 
-                    <b>Allure Report:</b><br>
+<b>Allure Report</b><br>
+<a href="${env.BUILD_URL}allure">
+${env.BUILD_URL}allure
+</a>
 
-                    <a href="${env.BUILD_URL}allure">
-                    ${env.BUILD_URL}allure
-                    </a>
+<br><br>
 
-                    <br><br>
+Regards,<br>
+Jenkins
 
-                    Regards,<br>
-
-                    Jenkins
-
-                    </body>
-
-                    </html>
-                    """
+</body>
+</html>
+"""
                 )
             }
         }
