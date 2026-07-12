@@ -81,55 +81,38 @@ pipeline {
         }
     }
 
-    post {
+post {
+    always {
+        script {
 
-        always {
+            def action = currentBuild.rawBuild.getAction(hudson.tasks.junit.TestResultAction)
 
-            script {
+            int total = action?.totalCount ?: 0
+            int failed = action?.failCount ?: 0
+            int skipped = action?.skipCount ?: 0
+            int passed = total - failed - skipped
 
-                int total = 0
-                int failed = 0
-                int skipped = 0
-                int passed = 0
-
-                if (fileExists('reports/results.xml')) {
-
-                    def report = new XmlSlurper().parse(new File("${env.WORKSPACE}/reports/results.xml"))
-
-                    def suite = report.testsuite[0]
-
-                    total = suite.@tests.toInteger()
-                    failed = suite.@failures.toInteger()
-                    skipped = suite.@skipped.toInteger()
-                    passed = total - failed - skipped
-                }
-
-                emailext(
-                    to: 'vamshinamile18@gmail.com',
-                    subject: "Automation Build #${env.BUILD_NUMBER} - ${currentBuild.currentResult}",
-                    mimeType: 'text/html',
-                    body: """
+            emailext(
+                to: 'vamshinamile18@gmail.com',
+                subject: "Automation Build #${env.BUILD_NUMBER} - ${currentBuild.currentResult}",
+                mimeType: 'text/html',
+                body: """
 <html>
-
 <head>
-
 <style>
 table{
-border-collapse:collapse;
-font-family:Arial;
+    border-collapse:collapse;
+    font-family:Arial;
 }
-
 th,td{
-border:1px solid black;
-padding:8px;
+    border:1px solid black;
+    padding:8px;
 }
-
 th{
-background:#4CAF50;
-color:white;
+    background:#4CAF50;
+    color:white;
 }
 </style>
-
 </head>
 
 <body>
@@ -164,17 +147,17 @@ color:white;
 </tr>
 
 <tr>
-<td style="color:green;"><b>Passed</b></td>
+<td>Passed</td>
 <td style="color:green;"><b>${passed}</b></td>
 </tr>
 
 <tr>
-<td style="color:red;"><b>Failed</b></td>
+<td>Failed</td>
 <td style="color:red;"><b>${failed}</b></td>
 </tr>
 
 <tr>
-<td><b>Skipped</b></td>
+<td>Skipped</td>
 <td>${skipped}</td>
 </tr>
 
@@ -183,7 +166,6 @@ color:white;
 <br>
 
 <b>Build URL</b><br>
-
 <a href="${env.BUILD_URL}">
 ${env.BUILD_URL}
 </a>
@@ -191,7 +173,6 @@ ${env.BUILD_URL}
 <br><br>
 
 <b>Allure Report</b><br>
-
 <a href="${env.BUILD_URL}allure">
 ${env.BUILD_URL}allure
 </a>
@@ -202,11 +183,12 @@ Regards,<br>
 Jenkins
 
 </body>
-
 </html>
 """
-                )
-            }
+            )
         }
     }
+}
+
+
 }
